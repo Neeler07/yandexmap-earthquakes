@@ -4,3 +4,4 @@
 
 Данные землетрясений беруться с earthquake.usgs.gov (https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.geojson)
 
+Demo: https://earthquaketrack.ru/eq_map/
