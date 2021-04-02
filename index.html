@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Карта землетрясений онлайн</title>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+	<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=XXXXX" type="text/javascript"></script>
+	<style>
+        html, body { margin: 0; padding: 0; }
+        html, body, #map { width: 100%; height: 100%; }
+        .list { list-style: none outside; margin: 0; padding: 0;}
+        .list li { padding-bottom: 10px; }
+        .list a { color: #207697; } 
+        .list a:hover { color: #28B8F0; text-decoration: none; } 
+        .btn {
+            margin-top: .25rem;
+            margin-bottom: .25rem;
+        }
+        .btn-success {
+            color: #fff;
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        .btn {
+            display: inline-block;
+            font-weight: 400;
+            text-align: center;
+            vertical-align: middle;
+            user-select: none;
+            border: 1px solid transparent;
+            padding: .375rem .75rem;
+            text-decoration: none;
+            line-height: 1.5;
+            border-radius: .25rem;
+            transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+        }         
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script type="text/javascript">
+$.getJSON('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/1.0_day.geojson',
+	function(data) {
+  		
+  		/* All Points */
+		var points 	= [];
+		var descr 	= [];
+
+  		for(e in data.features) {
+
+  			var eqData = data.features[e];
+
+  			points.push([eqData.geometry.coordinates[1], eqData.geometry.coordinates[0]]);
+  			descr.push({loc: eqData.properties.title, time : timeConverter(eqData.properties.time), depth: eqData.geometry.coordinates[2], mag: eqData.properties.mag, eventid: eqData.id});
+  		}
+
+  		ymaps.ready(function () {
+	    	var eqMap = new ymaps.Map('map', {
+	            center: [14.4304382, 35.0106854],
+	            zoom: 2,
+	            controls: ['zoomControl', 'typeSelector',  'fullscreenControl']
+	        });
+
+			clusterer = new ymaps.Clusterer({
+                clusterIconLayout: 'default#pieChart',
+                clusterIconPieChartRadius: 20,
+                clusterIconPieChartCoreRadius: 13,
+	            preset: 'islands#blueClusterIcons',
+	            groupByCoordinates: false,
+	            clusterDisableClickZoom: false,
+	            clusterHideIconOnBalloonOpen: false,
+	            geoObjectHideIconOnBalloonOpen: false
+        	})
+
+			getPointData = function (index, data) {
+            	return {
+                	balloonContentHeader: '<font size=3>'+data.loc+'</font>',
+                	balloonContentBody: '<div>Время: '+data.time+'</div>'+
+                                    '<div>Глубина: '+data.depth+' км.</div>'+
+                                    '<div style="margin-top:5px;text-align: center"><a href="https://earthquake.usgs.gov/earthquakes/eventpage/'+data.eventid+'/" class="btn btn-success" target="_blank">Подробнее</a></div>',
+                	clusterCaption: data.loc
+            	}
+        	}
+
+            getPointOptions = function (mag) {
+
+	            if(mag >= 4 && mag < 5) {
+	                return {
+	                    preset: 'islands#orangeCircleDotIcon'
+	                };
+	            } else if(mag >= 5) {
+	                return {
+	                    preset: 'islands#redCircleDotIcon'
+	                };
+	            }
+	            return {
+	                preset: 'islands#blueCircleDotIcon'
+	            };
+        	}
+
+	    	var geoObjects = [];
+
+		    for(i in points) {
+		        geoObjects[i] = new ymaps.Placemark(points[i], getPointData(i, descr[i]), getPointOptions(descr[i].mag));
+		    }
+
+    		clusterer.add(geoObjects);
+    		eqMap.geoObjects.add(clusterer);
+	    });
+
+
+		function timeConverter(UNIX_timestamp){
+		  var a = new Date(UNIX_timestamp * 1000);
+		  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+		  var year = a.getFullYear();
+		  var month = months[a.getMonth()];
+		  var date = a.getDate();
+		  var hour = a.getHours();
+		  var min = a.getMinutes();
+		  var sec = a.getSeconds();
+		  var time = date + ' ' + month + ' ' + year + ' ' + hour + ':' + min + ':' + sec ;
+		  return time;
+		}
+
+	}
+);	
+
+</script>	
+</body>
+</html>
